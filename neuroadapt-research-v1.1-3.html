@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NeuroAdapt Research Build v1.1</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede8;--bg2:#e6e2db;--sur:#fff;
+  --ink:#14100a;--ink2:#322a1e;--ink3:#685848;--ink4:#9a8878;
+  --rule:#c8c0b4;--rule2:#b4a898;
+  --teal:#0a4040;--teal-l:#e4f0f0;--teal-m:#6ab0b0;
+  --amber:#6a3a08;--amber-l:#fdf0e0;--amber-m:#d4a040;
+  --rose:#601818;--rose-l:#fce8e8;--rose-m:#c87070;
+  --green:#185828;--green-l:#e4f2ea;--green-m:#68b080;
+  --blue:#182860;--blue-l:#e8eef8;--blue-m:#7898d0;
+  --mono:'Courier New',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+.scr{display:none;width:100%;max-width:640px;padding:48px 32px 80px}
+.scr.on{display:block;animation:fi .18s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+#scr-task{display:none;max-width:100%;min-height:100vh;flex-direction:column;
+  align-items:center;justify-content:center;padding:32px;position:fixed;inset:0;background:var(--bg)}
+#scr-task.on{display:flex}
+h1{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-bottom:12px}
+h2{font-size:20px;font-weight:600;margin-bottom:10px}
+p{font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:8px}
+.lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink3);display:block;margin-bottom:12px}
+.badge{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;padding:3px 9px;border:1px solid var(--rule);
+  color:var(--ink3);margin-bottom:16px}
+.b-p2{border-color:var(--amber-m);color:var(--amber);background:var(--amber-l)}
+.b-p3{border-color:var(--blue-m);color:var(--blue);background:var(--blue-l)}
+.b-pr{border-color:var(--rose-m);color:var(--rose);background:var(--rose-l)}
+.b-prac{border-color:var(--teal-m);color:var(--teal);background:var(--teal-l)}
+.field{margin-bottom:16px}
+.field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.field input,.field select{width:100%;padding:9px 12px;border:1px solid var(--rule2);
+  background:var(--sur);font-family:var(--mono);font-size:13px;color:var(--ink);outline:none}
+.field input:focus,.field select:focus{border-color:var(--teal)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chk-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  font-size:14px;color:var(--ink2)}
+.chk-row input[type=checkbox]{width:16px;height:16px;cursor:pointer}
+.btn{display:inline-block;padding:11px 28px;background:var(--ink);color:#fff;border:none;
+  cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:500;margin-top:14px;
+  transition:background .12s}
+.btn:hover{background:var(--teal)}
+.btn.outline{background:transparent;color:var(--ink);border:1px solid var(--rule2);margin-left:10px}
+.btn.outline:hover{background:var(--bg2)}
+.btn.sm{padding:8px 18px;font-size:13px;margin-top:8px}
+.ls{list-style:none;border:1px solid var(--rule);margin:10px 0 16px}
+.ls li{display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid var(--rule);
+  font-size:13.5px;color:var(--ink2);line-height:1.55}
+.ls li:last-child{border-bottom:none}
+.ls li::before{content:'→';font-family:var(--mono);font-size:11px;color:var(--teal);
+  margin-top:2px;flex-shrink:0}
+.box{border:1px solid var(--rule);padding:14px 18px;background:var(--sur);margin:12px 0}
+.box.teal{border-left:3px solid var(--teal);background:var(--teal-l)}
+.box.amber{border-left:3px solid var(--amber);background:var(--amber-l)}
+.box p{margin-bottom:5px;font-size:13.5px}
+.box p:last-child{margin-bottom:0}
+.mono-box{border:1px solid var(--rule);padding:12px 16px;background:var(--bg2);
+  font-family:var(--mono);font-size:10.5px;color:var(--ink3);line-height:1.8;margin:10px 0}
+#task-hdr{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.1em;
+  text-align:center;margin-bottom:44px;line-height:1.9}
+#stim-wrap{position:relative;width:440px;height:220px;
+  display:flex;align-items:center;justify-content:center}
+#el-fix{font-size:48px;color:var(--ink3);user-select:none;display:none}
+#el-circle{width:80px;height:80px;border-radius:50%;background:var(--teal);display:none}
+#el-letter{font-size:100px;font-weight:700;font-family:var(--mono);
+  color:var(--ink);user-select:none;display:none}
+#el-arrows{font-size:36px;letter-spacing:10px;color:var(--ink);
+  user-select:none;display:none;font-family:var(--mono);line-height:1}
+#el-cbar-wrap{position:absolute;bottom:-32px;left:0;right:0;
+  height:5px;background:var(--bg2);display:none;border-radius:2px}
+#el-cbar{height:100%;background:var(--rose);width:100%;border-radius:2px}
+#task-fdbk{margin-top:38px;font-family:var(--mono);font-size:11px;
+  color:var(--ink4);height:16px;text-align:center}
+#task-prog{margin-top:18px;font-family:var(--mono);font-size:10px;
+  color:var(--ink4);text-align:center;letter-spacing:.06em}
+#task-hint{margin-top:44px;font-family:var(--mono);font-size:10.5px;
+  color:var(--ink3);letter-spacing:.06em;text-align:center}
+#pstrip{position:fixed;top:0;left:0;right:0;height:4px;
+  background:var(--rose);display:none;z-index:200}
+.sec{margin-bottom:24px}
+.sec+.sec{border-top:1px solid var(--rule);padding-top:20px}
+.sid-blk{font-family:var(--mono);font-size:11px;color:var(--ink3);
+  border:1px solid var(--rule);padding:10px 14px;background:var(--bg2);
+  line-height:1.8;margin-bottom:14px}
+.qbadge{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;
+  padding:4px 12px;border-radius:1px;letter-spacing:.08em}
+.q-valid{background:var(--green-l);border:1px solid var(--green-m);color:var(--green)}
+.q-questionable{background:var(--amber-l);border:1px solid var(--amber-m);color:var(--amber)}
+.q-invalid{background:var(--rose-l);border:1px solid var(--rose-m);color:var(--rose)}
+.mt{width:100%;border-collapse:collapse;margin:6px 0;font-size:13px}
+.mt th{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink3);padding:7px 10px;text-align:left;border-bottom:1px solid var(--rule2);background:var(--bg2)}
+.mt td{padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.mt tr:last-child td{border-bottom:none}
+.mt .nm{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.mt .vl{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.mt .gh td{background:var(--bg2);font-family:var(--mono);font-size:9px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--teal);padding:8px 10px 3px}
+.pos{color:#903020}.neg{color:#186028}.neu{color:var(--ink4)}
+.flist{list-style:none;margin:8px 0}
+.flist li{display:flex;align-items:flex-start;gap:8px;padding:5px 0;
+  border-bottom:1px solid var(--rule);font-size:13px;color:var(--ink2);line-height:1.5}
+.flist li:last-child{border-bottom:none}
+.f-ok{color:var(--green);font-family:var(--mono);font-size:11px;flex-shrink:0;margin-top:1px}
+.f-w {color:var(--amber);font-family:var(--mono);font-size:11px;flex-shrink:0;margin-top:1px}
+.f-e {color:var(--rose); font-family:var(--mono);font-size:11px;flex-shrink:0;margin-top:1px}
+.tmb-box{border:2px dashed var(--rule2);padding:28px;text-align:center;background:var(--bg2)}
+.tmb-box h3{color:var(--ink3);font-size:14px;margin-bottom:8px}
+.tmb-box p{font-size:13px;color:var(--ink4);margin-bottom:0}
+#tmb-pid{font-family:var(--mono);font-size:20px;color:var(--ink);
+  letter-spacing:.05em;margin:12px 0}
+</style>
+</head>
+<body>
+<div id="pstrip"></div>
+
+<!-- WELCOME -->
+<div id="scr-welcome" class="scr on">
+  <span class="lbl">NeuroAdapt Research Build v1.1</span>
+  <h1>Performance Drift<br>Assessment System</h1>
+  <p>This system measures <strong>how performance changes</strong> across three standardised cognitive task conditions. All outputs are expressed as metric deltas relative to an individual baseline.</p>
+  <ul class="ls">
+    <li>Phase 1 — Baseline Reaction Time (30 trials)</li>
+    <li>Phase 2 — Sustained Attention / CPT (60 trials)</li>
+    <li>Phase 3 — Conflict Task / Flanker (80 trials)</li>
+    <li>Optional — Pressure condition RT (30 trials)</li>
+  </ul>
+  <p>Keyboard only. Desktop or laptop required. Approximately 20 minutes.</p>
+  <div class="box amber">
+    <p><strong>Research context only.</strong> Pre-validation prototype. Output consists of raw trial data and computed metrics only. No clinical interpretation is generated. Results must not be used for clinical, diagnostic, or occupational decisions.</p>
+  </div>
+  <button class="btn" id="btn-welcome-continue">Continue →</button>
+</div>
+
+<!-- CONSENT -->
+<div id="scr-consent" class="scr">
+  <span class="lbl">Informed Consent</span>
+  <h2>Participant Information Sheet</h2>
+  <div class="mono-box">
+[CONSENT TEXT PLACEHOLDER]<br><br>
+Replace this block with the full IRB-approved information sheet before deployment.<br>
+Required elements: study title, PI contact, purpose and procedures,<br>
+voluntary participation and right to withdraw, data storage policy,<br>
+absence of clinical feedback, post-session contact information.
+  </div>
+  <div style="margin-top:16px">
+    <div class="chk-row">
+      <input type="checkbox" id="chk-consent">
+      <label for="chk-consent">I have read the information above and consent to participate.</label>
+    </div>
+  </div>
+  <button class="btn" id="btn-consent-continue">Confirm Consent →</button>
+</div>
+
+<!-- SETUP -->
+<div id="scr-setup" class="scr">
+  <span class="lbl">Session Setup</span>
+  <h2>Session Configuration</h2>
+  <div class="field">
+    <label>Participant ID</label>
+    <input type="text" id="pid-input" placeholder="Auto-generated — editable if needed">
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Session Date</label>
+      <input type="text" id="date-input" readonly>
+    </div>
+    <div class="field">
+      <label>Counterbalancing Group</label>
+      <select id="tmb-group">
+        <option value="B">Group B — NeuroAdapt → TMB</option>
+        <option value="A">Group A — TMB → NeuroAdapt</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Administrator Notes (optional)</label>
+    <input type="text" id="admin-notes" placeholder="Session number, site, deviations…">
+  </div>
+  <div class="chk-row">
+    <input type="checkbox" id="chk-pressure">
+    <label for="chk-pressure">Include pressure condition — Phase 4 RT with countdown (~4 min extra)</label>
+  </div>
+  <div class="box teal">
+    <p>All data stays in browser memory. Nothing is transmitted. Export before closing the browser tab.</p>
+  </div>
+  <button class="btn" id="btn-setup-start">Begin Session →</button>
+</div>
+
+<!-- INSTRUCTIONS (shared — content injected by JS) -->
+<div id="scr-instr" class="scr">
+  <div id="instr-badge" class="badge b-prac">Practice</div>
+  <span class="lbl" id="instr-lbl">—</span>
+  <h2 id="instr-title">—</h2>
+  <div id="instr-body"></div>
+  <button class="btn" id="btn-instr-start">Start →</button>
+</div>
+
+<!-- TASK (full-screen) -->
+<div id="scr-task">
+  <div id="task-hdr"></div>
+  <div id="stim-wrap">
+    <div id="el-fix">+</div>
+    <div id="el-circle"></div>
+    <div id="el-letter"></div>
+    <div id="el-arrows"></div>
+    <div id="el-cbar-wrap"><div id="el-cbar"></div></div>
+  </div>
+  <div id="task-fdbk"></div>
+  <div id="task-prog"></div>
+  <div id="task-hint"></div>
+</div>
+
+<!-- INTERSTITIAL (between phases) -->
+<div id="scr-inter" class="scr">
+  <span class="lbl" id="inter-lbl">—</span>
+  <h2 id="inter-title">—</h2>
+  <div id="inter-body"></div>
+  <button class="btn" id="btn-inter-continue">Continue →</button>
+</div>
+
+<!-- TMB PLACEHOLDER -->
+<div id="scr-tmb" class="scr">
+  <span class="lbl">External Assessment Block — v1.1</span>
+  <h2>TestMyBrain (TMB) — Validation Battery</h2>
+
+  <div class="tmb-box">
+    <h3>TMB session — Participant ID for linkage</h3>
+    <div id="tmb-pid">—</div>
+    <p>Enter this ID into TMB before starting. Complete all four tasks below.</p>
+  </div>
+
+  <div style="margin-top:16px">
+    <span class="lbl">TMB Tasks — This Session</span>
+    <ul class="ls">
+      <li>TMB Simple Reaction Time</li>
+      <li>TMB GradCPT</li>
+      <li>TMB Flanker Attention</li>
+      <li>TMB Trail-Making Test B</li>
+    </ul>
+  </div>
+
+  <div style="margin-top:4px">
+    <span class="lbl">Validation Mapping — NeuroAdapt ↔ TMB</span>
+    <table class="mt">
+      <thead>
+        <tr>
+          <th>NeuroAdapt Metric</th>
+          <th>TMB Criterion Measure</th>
+          <th>Construct</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="nm">RT baseline mean &amp; SD</td>
+          <td class="vl">TMB Simple Reaction Time</td>
+          <td class="nm">Reactivity</td>
+        </tr>
+        <tr>
+          <td class="nm">CPT omission rate · RT variability (CV)</td>
+          <td class="vl">TMB GradCPT RT variability</td>
+          <td class="nm">Stability / sustained attention</td>
+        </tr>
+        <tr>
+          <td class="nm">Flanker FIC (inc − con RT)</td>
+          <td class="vl">TMB Flanker Attention</td>
+          <td class="nm">Cognitive control / conflict</td>
+        </tr>
+        <tr>
+          <td class="nm">Pressure RT delta (Δ mean RT)</td>
+          <td class="vl">TMB Trail-Making Test B</td>
+          <td class="nm">Executive load / set-switching</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box amber" style="margin-top:14px">
+    <p><strong>TMT-B gap note.</strong> NeuroAdapt does not currently implement Trail-Making Test B. TMT-B remains an external criterion measure administered via TMB only. The Pressure RT delta serves as the NeuroAdapt-side proxy for executive load in this validation phase.</p>
+  </div>
+
+  <div class="mono-box" style="margin-top:12px">
+Integration paths (implement in next build):<br>
+A · Direct URL link with participant_id as query parameter<br>
+B · Embedded iframe (requires TMB CORS permission)<br>
+C · Manual handoff — administrator completes TMB, returns here<br><br>
+Group A: this screen appears BEFORE NeuroAdapt tasks.<br>
+Group B: this screen appears AFTER NeuroAdapt tasks.
+  </div>
+
+  <div class="box teal" style="margin-top:10px">
+    <p>Complete all four TMB tasks, then click Continue to proceed.</p>
+  </div>
+  <button class="btn" id="btn-tmb-continue">TMB Complete — Continue →</button>
+</div>
+
+<!-- RESULTS -->
+<div id="scr-results" class="scr">
+  <span class="lbl">Session Complete — Research Output</span>
+  <div class="sec">
+    <div class="sid-blk" id="r-sid"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <strong style="font-size:14px">Session Quality:</strong>
+      <span class="qbadge" id="r-quality">—</span>
+    </div>
+  </div>
+  <div class="sec">
+    <span class="lbl">Data Quality Flags</span>
+    <ul class="flist" id="r-flags"></ul>
+  </div>
+  <div class="sec">
+    <span class="lbl">Computed Metrics</span>
+    <table class="mt" id="r-metrics"></table>
+  </div>
+  <div class="sec">
+    <span class="lbl">Delta Notes</span>
+    <div class="mono-box" id="r-deltas"></div>
+  </div>
+  <div class="sec">
+    <span class="lbl">Export</span>
+    <p style="font-size:13px;color:var(--ink3)">Raw JSON contains every logged trial field. CSV contains computed metrics and quality flags. Export before closing the tab.</p>
+    <div style="margin-top:8px">
+      <button class="btn sm" id="btn-export-json">↓ Raw Trials (JSON)</button>
+      <button class="btn sm outline" id="btn-export-csv">↓ Metrics Summary (CSV)</button>
+    </div>
+  </div>
+  <div class="sec">
+    <span class="lbl">Methodological Limitations</span>
+    <div class="mono-box">
+· Pre-validation prototype — thresholds not empirically derived.<br>
+· Browser timing (performance.now) has ~5–20 ms jitter, not corrected.<br>
+· No test-retest reliability data exists for this implementation.<br>
+· No normative comparison is computed or implied.<br>
+· Single-session data does not support temporal consistency conclusions.<br>
+· CPT RT not logged (detection rate task — intentional). Drift computable from trial_number in raw JSON.<br>
+· Sound cue depends on device/browser — AudioContext may be silently blocked.
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── App object declared first — before anything else ───────────────────────
+var App = {};
+
+// ─── State ───────────────────────────────────────────────────────────────────
+var SESSION  = {};
+var TRIALS   = [];
+var FLOW     = [];
+var FLOW_IDX = 0;
+
+// ─── DOM helper ──────────────────────────────────────────────────────────────
+function g(id){ return document.getElementById(id); }
+
+// ─── Show / hide screens ─────────────────────────────────────────────────────
+function showScreen(id){
+  var ids = ['scr-welcome','scr-consent','scr-setup','scr-instr',
+             'scr-task','scr-inter','scr-tmb','scr-results'];
+  for(var i=0;i<ids.length;i++){
+    var el = g(ids[i]);
+    if(el) el.classList.remove('on');
+  }
+  var t = g(id);
+  if(t){ t.classList.add('on'); window.scrollTo(0,0); }
+}
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+function mean(arr){
+  if(!arr||!arr.length) return null;
+  var s=0; for(var i=0;i<arr.length;i++) s+=arr[i];
+  return s/arr.length;
+}
+
+function sdev(arr){
+  if(!arr||arr.length<2) return null;
+  var m=mean(arr), s=0;
+  for(var i=0;i<arr.length;i++) s+=(arr[i]-m)*(arr[i]-m);
+  return Math.sqrt(s/arr.length);
+}
+
+function cvar(arr){
+  var m=mean(arr), s=sdev(arr);
+  return (m&&s) ? s/m : null;
+}
+
+function fmt(v,dec,unit){
+  if(v===null||v===undefined||isNaN(v)) return '—';
+  return v.toFixed(dec||0)+(unit||'');
+}
+
+function fmtD(v,unit,dec){
+  if(v===null||v===undefined||isNaN(v)) return ['—','neu'];
+  var s = (v>0?'+':'')+v.toFixed(dec||1)+(unit||'');
+  return [s, v>0?'pos':'neg'];
+}
+
+function makeUID(){
+  var d=new Date();
+  return 'NA-'+d.getFullYear().toString().slice(2)+
+    String(d.getMonth()+1).padStart(2,'0')+
+    String(d.getDate()).padStart(2,'0')+'-'+
+    Math.random().toString(36).slice(2,6).toUpperCase();
+}
+
+function isoNow(){ return new Date().toISOString(); }
+
+function shuffle(arr){
+  var a=arr.slice(),i,j,t;
+  for(i=a.length-1;i>0;i--){ j=rnd(0,i); t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+
+// ─── Audio ───────────────────────────────────────────────────────────────────
+function beep(freq,dur,vol){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var o=ctx.createOscillator(), g2=ctx.createGain();
+    o.connect(g2); g2.connect(ctx.destination);
+    o.frequency.value=freq||880;
+    g2.gain.setValueAtTime(vol||0.2,ctx.currentTime);
+    g2.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+(dur||0.1));
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+(dur||0.1));
+  }catch(e){}
+}
+
+// ─── Trial logger ─────────────────────────────────────────────────────────────
+function logTrial(fields){
+  var rec = {
+    participant_id:    SESSION.participant_id,
+    session_id:        SESSION.session_id,
+    session_timestamp: SESSION.session_timestamp,
+    tmb_group:         SESSION.tmb_group,
+    pressure_enabled:  SESSION.pressure_enabled
+  };
+  var k;
+  for(k in fields){ if(fields.hasOwnProperty(k)) rec[k]=fields[k]; }
+  TRIALS.push(rec);
+}
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+var CFG = {
+  prac_rt:    {n:6,   win:2200,itiLo:900, itiHi:1400,fixLo:500,fixHi:900, pressure:false},
+  prac_cpt:   {n:10,  stm:220, isi:1200, tRate:0.3,  pressure:false},
+  prac_flk:   {nC:5,  nI:5,   win:1600, itiLo:700,  itiHi:1000,pressure:false},
+  base_rt:    {n:30,  win:2000,itiLo:900, itiHi:1400,fixLo:500,fixHi:900, pressure:false},
+  base_cpt:   {n:60,  stm:200, isi:1100, tRate:0.25, pressure:false},
+  base_flk:   {nC:40, nI:40,  win:1500, itiLo:700,  itiHi:1000,pressure:false},
+  press_rt:   {n:30,  win:800, itiLo:600,itiHi:950, fixLo:280,fixHi:500,  pressure:true}
+};
+
+var CPT_POOL   = ['A','B','C','D','E','F','G','H','K','M','N','P','R','S','T','V','W','Y','Z'];
+var CPT_TARGET = 'X';
+
+// ─── Task metadata ────────────────────────────────────────────────────────────
+var META = {
+  rt:{
+    title:'Reaction Time Task',
+    heading:{PRACTICE:'Practice — Reaction Time',BASELINE:'Phase 1 — Reaction Time',PRESSURE:'Phase 4 — RT (Pressure)'},
+    hint:'Press SPACE when the circle appears',
+    instr:{
+      PRACTICE:'<p>A <strong>circle</strong> appears at screen centre. Press <strong>Space</strong> as quickly as possible when you see it.</p><p>Do not press before it appears. 6 practice trials.</p>',
+      BASELINE:'<p>Same task. Press <strong>Space</strong> as quickly as possible when the circle appears.</p><p>30 trials.</p>',
+      PRESSURE:'<p>Same task. A beep sounds at stimulus onset. A countdown bar shows your response window. Respond before the bar runs out.</p><p>30 trials.</p>'
+    }
+  },
+  cpt:{
+    title:'Sustained Attention Task',
+    heading:{PRACTICE:'Practice — Sustained Attention',BASELINE:'Phase 2 — Sustained Attention'},
+    hint:'Press SPACE for X only — do not respond to other letters',
+    instr:{
+      PRACTICE:'<p>Letters appear one at a time. Press <strong>Space</strong> only when you see <strong style="font-size:18px">X</strong>.</p><p>Do not press for any other letter. 10 practice trials.</p>',
+      BASELINE:'<p>Same rule. Press <strong>Space</strong> only for <strong style="font-size:18px">X</strong>. Do not respond to other letters.</p><p>60 trials — maintain the rule throughout the entire block.</p>'
+    }
+  },
+  flanker:{
+    title:'Conflict Task',
+    heading:{PRACTICE:'Practice — Conflict Task',BASELINE:'Phase 3 — Conflict Task'},
+    hint:'← or → for CENTRE arrow only — ignore surrounding arrows',
+    instr:{
+      PRACTICE:'<p>Five arrows appear. Respond to the <strong>centre arrow only</strong>.</p><p>← Left arrow key if centre points LEFT<br>→ Right arrow key if centre points RIGHT<br>Ignore surrounding arrows. 10 practice trials.</p>',
+      BASELINE:'<p>Same rule. Respond to the <strong>centre arrow only</strong> with ← or →.</p><p>80 trials. Some flanker arrows point opposite to the centre — focus on the centre only.</p>'
+    }
+  }
+};
+
+// ─── Flow builder ─────────────────────────────────────────────────────────────
+function buildFlow(tmbGrp, withPressure){
+  var prac=[
+    {t:'instr',task:'rt',     phase:'PRACTICE',cfg:'prac_rt', lbl:'Practice — Task 1 of 3',bcls:'b-prac'},
+    {t:'task', task:'rt',     phase:'PRACTICE',cfg:'prac_rt'},
+    {t:'instr',task:'cpt',    phase:'PRACTICE',cfg:'prac_cpt',lbl:'Practice — Task 2 of 3',bcls:'b-prac'},
+    {t:'task', task:'cpt',    phase:'PRACTICE',cfg:'prac_cpt'},
+    {t:'instr',task:'flanker',phase:'PRACTICE',cfg:'prac_flk',lbl:'Practice — Task 3 of 3',bcls:'b-prac'},
+    {t:'task', task:'flanker',phase:'PRACTICE',cfg:'prac_flk'},
+    {t:'inter',title:'Practice Complete',il:'Measurement Phase Begins',
+     body:'<p>Practice is complete. The next blocks record session data.</p><p>Tasks are identical. Continue when ready.</p>'}
+  ];
+  var na=[
+    {t:'instr',task:'rt',     phase:'BASELINE',cfg:'base_rt', lbl:'Phase 1 — Task 1 of 3',bcls:''},
+    {t:'task', task:'rt',     phase:'BASELINE',cfg:'base_rt'},
+    {t:'inter',title:'Phase 1 Complete',il:'Phase 2',
+     body:'<p>RT baseline recorded.</p><p>Phase 2 is a sustained attention task. Maintain the rule across the full block.</p>'},
+    {t:'instr',task:'cpt',    phase:'BASELINE',cfg:'base_cpt',lbl:'Phase 2 — Task 2 of 3',bcls:'b-p2'},
+    {t:'task', task:'cpt',    phase:'BASELINE',cfg:'base_cpt'},
+    {t:'inter',title:'Phase 2 Complete',il:'Phase 3',
+     body:'<p>Sustained attention block recorded.</p><p>Phase 3 is the conflict task. Respond to the centre arrow only.</p>'},
+    {t:'instr',task:'flanker',phase:'BASELINE',cfg:'base_flk',lbl:'Phase 3 — Task 3 of 3',bcls:'b-p3'},
+    {t:'task', task:'flanker',phase:'BASELINE',cfg:'base_flk'}
+  ];
+  var press=withPressure?[
+    {t:'inter',title:'Optional Pressure Condition',il:'Phase 4',
+     body:'<p>Phase 4: same RT task with shortened response window and auditory cue. Respond before the countdown bar empties.</p>'},
+    {t:'instr',task:'rt',phase:'PRESSURE',cfg:'press_rt',lbl:'Phase 4 — Pressure RT',bcls:'b-pr'},
+    {t:'task', task:'rt',phase:'PRESSURE',cfg:'press_rt'}
+  ]:[];
+  var tmb=[{t:'tmb'}];
+  var end=[{t:'results'}];
+  return tmbGrp==='A'
+    ? prac.concat(tmb, na, press, end)
+    : prac.concat(na, press, tmb, end);
+}
+
+// ─── Flow advance ─────────────────────────────────────────────────────────────
+function advance(){
+  if(FLOW_IDX>=FLOW.length){ doResults(); return; }
+  var step=FLOW[FLOW_IDX++];
+
+  if(step.t==='results'){ doResults(); return; }
+
+  if(step.t==='tmb'){
+    g('tmb-pid').textContent=SESSION.participant_id;
+    showScreen('scr-tmb'); return;
+  }
+
+  if(step.t==='inter'){
+    g('inter-lbl').textContent  = step.il||'';
+    g('inter-title').textContent= step.title||'';
+    g('inter-body').innerHTML   = step.body||'';
+    showScreen('scr-inter'); return;
+  }
+
+  if(step.t==='instr'){
+    var m=META[step.task];
+    g('instr-badge').textContent = step.lbl||'';
+    g('instr-badge').className   = 'badge '+(step.bcls||'');
+    g('instr-lbl').textContent   = m.heading[step.phase]||'';
+    g('instr-title').textContent = m.title;
+    g('instr-body').innerHTML    = m.instr[step.phase]||'';
+    showScreen('scr-instr'); return;
+  }
+
+  if(step.t==='task'){
+    var runners={rt:runRT, cpt:runCPT, flanker:runFlanker};
+    runners[step.task](step.phase, CFG[step.cfg]);
+  }
+}
+
+// ─── Task: Reaction Time ──────────────────────────────────────────────────────
+function runRT(phase, cfg){
+  var isPr=cfg.pressure;
+  g('pstrip').style.display = isPr?'block':'none';
+  g('task-hint').textContent = META.rt.hint;
+  g('task-hdr').innerHTML    =
+    (isPr?'PHASE 4 — PRESSURE':phase==='PRACTICE'?'PRACTICE':'PHASE 1 — BASELINE')
+    +' &nbsp;·&nbsp; REACTION TIME';
+  ['el-circle','el-fix','el-letter','el-arrows'].forEach(function(id){g(id).style.display='none';});
+  g('el-cbar-wrap').style.display='none';
+  g('task-fdbk').textContent='';
+  showScreen('scr-task');
+
+  var total=cfg.n, trialN=0, stimOn=false, t0=0;
+  var cbarInt=null, toId=null, finished=false;
+  var bOrder = phase==='PRACTICE'?0:phase==='BASELINE'?1:4;
+
+  function done(){
+    if(finished)return; finished=true;
+    document.removeEventListener('keydown',onKey);
+    clearInterval(cbarInt); clearTimeout(toId);
+    g('pstrip').style.display='none';
+    advance();
+  }
+
+  function nextTrial(){
+    if(trialN>=total){ done(); return; }
+    g('task-prog').textContent='Trial '+(trialN+1)+' / '+total;
+    stimOn=false;
+    g('el-circle').style.display='none';
+    g('el-cbar-wrap').style.display='none';
+    g('task-fdbk').textContent='';
+    g('el-fix').style.display='block';
+    var fd=rnd(cfg.fixLo||500,cfg.fixHi||900);
+    setTimeout(function(){
+      g('el-fix').style.display='none';
+      if(isPr) beep(880,0.09);
+      g('el-circle').style.display='block';
+      if(isPr){
+        g('el-cbar').style.width='100%';
+        g('el-cbar-wrap').style.display='block';
+        var ts=performance.now();
+        cbarInt=setInterval(function(){
+          g('el-cbar').style.width=Math.max(0,100-((performance.now()-ts)/cfg.win)*100)+'%';
+        },33);
+      }
+      stimOn=true; t0=performance.now();
+      toId=setTimeout(function(){ if(stimOn) onTimeout(); }, cfg.win);
+    }, fd);
+    trialN++;
+  }
+
+  function onTimeout(){
+    clearInterval(cbarInt);
+    stimOn=false;
+    g('el-circle').style.display='none';
+    g('el-cbar-wrap').style.display='none';
+    logTrial({task:'RT',phase:phase,trial_number:trialN,stimulus:'circle',
+      condition:'go',correct_response:'SPACE',participant_response:'TIMEOUT',
+      rt_ms:null,correct:false,timeout:true,omitted:false,
+      commission_error:false,block_order:bOrder});
+    g('task-fdbk').textContent='Too slow';
+    setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
+  }
+
+  function onHit(rt){
+    clearInterval(cbarInt); clearTimeout(toId);
+    stimOn=false;
+    g('el-circle').style.display='none';
+    g('el-cbar-wrap').style.display='none';
+    logTrial({task:'RT',phase:phase,trial_number:trialN,stimulus:'circle',
+      condition:'go',correct_response:'SPACE',participant_response:'SPACE',
+      rt_ms:Math.round(rt),correct:true,timeout:false,omitted:false,
+      commission_error:false,block_order:bOrder});
+    g('task-fdbk').textContent='';
+    setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
+  }
+
+  function onKey(e){
+    if(e.code==='Space'){ e.preventDefault(); if(stimOn) onHit(performance.now()-t0); }
+  }
+  document.addEventListener('keydown',onKey);
+  setTimeout(nextTrial,600);
+}
+
+// ─── Task: CPT ────────────────────────────────────────────────────────────────
+function runCPT(phase, cfg){
+  g('pstrip').style.display='none';
+  g('task-hint').textContent=META.cpt.hint;
+  g('task-hdr').innerHTML=(phase==='PRACTICE'?'PRACTICE':'PHASE 2 — SUSTAINED ATTENTION')+' &nbsp;·&nbsp; CPT';
+  ['el-circle','el-fix','el-arrows','el-letter'].forEach(function(id){g(id).style.display='none';});
+  g('task-fdbk').textContent='';
+  showScreen('scr-task');
+
+  var n=cfg.n, seq=[], i;
+  for(i=0;i<n;i++){
+    seq.push(Math.random()<cfg.tRate ? CPT_TARGET :
+      CPT_POOL[rnd(0,CPT_POOL.length-1)]);
+  }
+
+  var trialN=0, stimActive=false, responded=false, finished=false;
+  var bOrder=phase==='PRACTICE'?0:2;
+
+  function done(){ if(finished)return; finished=true; document.removeEventListener('keydown',onKey); advance(); }
+
+  function runTrial(){
+    if(trialN>=n){ done(); return; }
+    g('task-prog').textContent='Trial '+(trialN+1)+' / '+n;
+    var ltr=seq[trialN], isTgt=(ltr===CPT_TARGET), tn=trialN;
+    stimActive=true; responded=false;
+    g('el-letter').textContent=ltr;
+    g('el-letter').style.display='block';
+    g('task-fdbk').textContent='';
+    setTimeout(function(){ g('el-letter').style.display='none'; }, cfg.stm);
+    setTimeout(function(){
+      if(stimActive){
+        stimActive=false;
+        if(isTgt&&!responded){
+          logTrial({task:'CPT',phase:phase,trial_number:tn+1,stimulus:ltr,condition:'target',
+            correct_response:'SPACE',participant_response:'NONE',rt_ms:null,
+            correct:false,timeout:false,omitted:true,commission_error:false,block_order:bOrder});
+        } else if(!isTgt&&!responded){
+          logTrial({task:'CPT',phase:phase,trial_number:tn+1,stimulus:ltr,condition:'nontarget',
+            correct_response:'NONE',participant_response:'NONE',rt_ms:null,
+            correct:true,timeout:false,omitted:false,commission_error:false,block_order:bOrder});
+        }
+      }
+      trialN++; runTrial();
+    }, cfg.stm+cfg.isi);
+  }
+
+  function onKey(e){
+    if(e.code!=='Space'||!stimActive) return;
+    e.preventDefault();
+    var ltr=seq[trialN], isTgt=(ltr===CPT_TARGET), tn=trialN;
+    responded=true; stimActive=false;
+    logTrial({task:'CPT',phase:phase,trial_number:tn+1,stimulus:ltr,
+      condition:isTgt?'target':'nontarget',
+      correct_response:isTgt?'SPACE':'NONE',participant_response:'SPACE',
+      rt_ms:null,correct:isTgt,timeout:false,omitted:false,
+      commission_error:!isTgt,block_order:bOrder});
+  }
+  document.addEventListener('keydown',onKey);
+  setTimeout(runTrial,600);
+}
+
+// ─── Task: Flanker ────────────────────────────────────────────────────────────
+function buildFlkSeq(nC,nI){
+  var a=[],i;
+  for(i=0;i<nC;i++) a.push('congruent');
+  for(i=0;i<nI;i++) a.push('incongruent');
+  return shuffle(a);
+}
+
+function mkStim(cong){
+  var cDir=Math.random()<0.5?'L':'R';
+  var fDir=cong==='congruent'?cDir:(cDir==='L'?'R':'L');
+  var ar=function(d){return d==='L'?'←':'→';};
+  return {cDir:cDir,fDir:fDir,cong:cong,
+    str:ar(fDir)+' '+ar(fDir)+' '+ar(cDir)+' '+ar(fDir)+' '+ar(fDir)};
+}
+
+function runFlanker(phase, cfg){
+  g('pstrip').style.display='none';
+  g('task-hint').textContent=META.flanker.hint;
+  g('task-hdr').innerHTML=(phase==='PRACTICE'?'PRACTICE':'PHASE 3 — CONFLICT TASK')+' &nbsp;·&nbsp; FLANKER';
+  ['el-circle','el-fix','el-letter','el-arrows'].forEach(function(id){g(id).style.display='none';});
+  g('task-fdbk').textContent='';
+  showScreen('scr-task');
+
+  var seq=buildFlkSeq(cfg.nC,cfg.nI), total=seq.length;
+  var trialN=0, stim=null, stimOn=false, t0=0, toId=null, finished=false;
+  var bOrder=phase==='PRACTICE'?0:3;
+
+  function done(){ if(finished)return; finished=true; document.removeEventListener('keydown',onKey); clearTimeout(toId); advance(); }
+
+  function nextTrial(){
+    if(trialN>=total){ done(); return; }
+    g('task-prog').textContent='Trial '+(trialN+1)+' / '+total;
+    stimOn=false;
+    g('el-arrows').style.display='none';
+    g('el-fix').style.display='block';
+    g('task-fdbk').textContent='';
+    var tn=trialN;
+    setTimeout(function(){
+      stim=mkStim(seq[tn]);
+      g('el-fix').style.display='none';
+      g('el-arrows').textContent=stim.str;
+      g('el-arrows').style.display='block';
+      stimOn=true; t0=performance.now();
+      toId=setTimeout(function(){
+        if(stimOn){
+          stimOn=false; g('el-arrows').style.display='none';
+          logTrial({task:'FLANKER',phase:phase,trial_number:tn+1,stimulus:stim.str,
+            condition:stim.cong,correct_response:stim.cDir==='L'?'LEFT':'RIGHT',
+            participant_response:'TIMEOUT',rt_ms:null,correct:false,
+            timeout:true,omitted:false,commission_error:false,block_order:bOrder});
+          trialN++; setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
+        }
+      }, cfg.win);
+    }, rnd(400,700));
+    trialN++;
+  }
+
+  function onKey(e){
+    if(!stimOn||(e.code!=='ArrowLeft'&&e.code!=='ArrowRight')) return;
+    e.preventDefault();
+    var resp=e.code==='ArrowLeft'?'L':'R', rt=performance.now()-t0;
+    clearTimeout(toId); stimOn=false;
+    g('el-arrows').style.display='none';
+    var correct=(resp===stim.cDir);
+    logTrial({task:'FLANKER',phase:phase,trial_number:trialN,stimulus:stim.str,
+      condition:stim.cong,correct_response:stim.cDir==='L'?'LEFT':'RIGHT',
+      participant_response:resp==='L'?'LEFT':'RIGHT',
+      rt_ms:Math.round(rt),correct:correct,timeout:false,
+      omitted:false,commission_error:!correct,block_order:bOrder});
+    setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
+  }
+  document.addEventListener('keydown',onKey);
+  setTimeout(nextTrial,600);
+}
+
+// ─── Metrics ──────────────────────────────────────────────────────────────────
+function computeMetrics(){
+  function byTP(task,ph){ return TRIALS.filter(function(r){return r.task===task&&r.phase===ph;}); }
+  function rtV(ph){ return byTP('RT',ph).filter(function(r){return r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;}); }
+
+  var rb=rtV('BASELINE'), rp=rtV('PRESSURE');
+  var cb=byTP('CPT','BASELINE');
+  var cTgt=cb.filter(function(r){return r.condition==='target';});
+  var cNon=cb.filter(function(r){return r.condition==='nontarget';});
+  var fb=byTP('FLANKER','BASELINE');
+  var fCon=fb.filter(function(r){return r.condition==='congruent'&&r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;});
+  var fInc=fb.filter(function(r){return r.condition==='incongruent'&&r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;});
+  var fcA=fb.filter(function(r){return r.condition==='congruent';});
+  var fiA=fb.filter(function(r){return r.condition==='incongruent';});
+
+  var mB=mean(rb),mP=mean(rp),sB=sdev(rb),sP=sdev(rp),cB=cvar(rb),cP=cvar(rp);
+  var omR=cTgt.length?cTgt.filter(function(r){return r.omitted;}).length/cTgt.length:null;
+  var faR=cNon.length?cNon.filter(function(r){return r.commission_error;}).length/cNon.length:null;
+  var fic=(fCon.length&&fInc.length)?mean(fInc)-mean(fCon):null;
+  var aC=fcA.length?fcA.filter(function(r){return r.correct;}).length/fcA.length:null;
+  var aI=fiA.length?fiA.filter(function(r){return r.correct;}).length/fiA.length:null;
+
+  return {
+    rt:{mB:mB,mP:mP,sB:sB,sP:sP,cB:cB,cP:cP,nB:rb.length,nP:rp.length,
+        dM:(mB&&mP)?mP-mB:null, dS:(sB&&sP)?sP-sB:null, dC:(cB&&cP)?cP-cB:null},
+    cpt:{nT:cTgt.length,nN:cNon.length,
+         om:cTgt.filter(function(r){return r.omitted;}).length,
+         fa:cNon.filter(function(r){return r.commission_error;}).length,
+         omR:omR,faR:faR},
+    flk:{fic:fic,mC:mean(fCon),mI:mean(fInc),aC:aC,aI:aI,
+         nC:fcA.length,nI:fiA.length}
+  };
+}
+
+// ─── Quality flags ────────────────────────────────────────────────────────────
+function computeQuality(m){
+  var flags=[],errs=0,warns=0;
+  function flag(lvl,txt){ flags.push({lvl:lvl,txt:txt}); if(lvl==='ERR')errs++; if(lvl==='WARN')warns++; }
+
+  if(m.rt.nB<20)       flag('ERR', 'RT baseline: only '+m.rt.nB+' usable trials (minimum 20)');
+  else if(m.rt.nB<30)  flag('WARN','RT baseline: '+m.rt.nB+' trials — below pre-pilot minimum of 30');
+  else                 flag('OK',  'RT baseline: '+m.rt.nB+' usable trials');
+
+  var cv=m.rt.cB;
+  if(cv===null)               flag('WARN','RT baseline CV not computable — insufficient data');
+  else if(cv<0.10||cv>0.70)   flag('ERR', 'RT CV = '+cv.toFixed(3)+' — outside valid range 0.10–0.70 (distributional anomaly)');
+  else if(cv<0.15)             flag('WARN','RT CV = '+cv.toFixed(3)+' — below lower bound 0.15');
+  else if(cv>0.60)             flag('WARN','RT CV = '+cv.toFixed(3)+' — above upper bound 0.60');
+  else                         flag('OK',  'RT CV = '+cv.toFixed(3)+' — within valid range 0.15–0.60');
+
+  var cAll=m.cpt.nT+m.cpt.nN;
+  if(cAll<40)      flag('ERR', 'CPT: only '+cAll+' trials (minimum 60)');
+  else if(cAll<60) flag('WARN','CPT: '+cAll+' trials — below pre-pilot minimum of 60');
+  else             flag('OK',  'CPT: '+cAll+' trials logged');
+  if(m.cpt.nT<10)  flag('WARN','CPT: only '+m.cpt.nT+' target trials — omission rate unreliable');
+  if(m.cpt.faR!==null&&m.cpt.faR>0.40) flag('WARN','CPT: false alarm rate '+Math.round(m.cpt.faR*100)+'% — verify task rule comprehension');
+
+  if(m.flk.nC<30||m.flk.nI<30) flag('WARN','Flanker: con='+m.flk.nC+', inc='+m.flk.nI+' — below 40+40 minimum');
+  else                           flag('OK',  'Flanker: con='+m.flk.nC+', inc='+m.flk.nI+' trials');
+  if(m.flk.aI!==null&&m.flk.aI<0.5) flag('WARN','Flanker incongruent accuracy = '+Math.round(m.flk.aI*100)+'% — at or below chance');
+  if(SESSION.pressure_enabled&&m.rt.nP<20) flag('WARN','Pressure RT: only '+m.rt.nP+' trials');
+
+  var q='VALID';
+  if(errs>=2)q='INVALID'; else if(errs===1||warns>=3)q='QUESTIONABLE';
+  return {flags:flags,q:q};
+}
+
+// ─── Results ──────────────────────────────────────────────────────────────────
+function doResults(){
+  var m=computeMetrics(), q=computeQuality(m);
+  SESSION._m=m; SESSION._q=q;
+
+  g('r-sid').innerHTML=
+    'Participant: <strong>'+SESSION.participant_id+'</strong> &nbsp;·&nbsp; '+
+    'Session: '+SESSION.session_id+' &nbsp;·&nbsp; '+SESSION.session_timestamp+'<br>'+
+    'TMB Group: '+SESSION.tmb_group+
+    ' &nbsp;·&nbsp; Pressure: '+(SESSION.pressure_enabled?'yes':'no')+
+    ' &nbsp;·&nbsp; Trials logged: '+TRIALS.length+
+    (SESSION.admin_notes?'<br>Notes: '+SESSION.admin_notes:'');
+
+  var qEl=g('r-quality');
+  qEl.textContent=q.q; qEl.className='qbadge q-'+q.q.toLowerCase();
+
+  g('r-flags').innerHTML=q.flags.map(function(f){
+    var icon=f.lvl==='OK'?'[OK]':f.lvl==='WARN'?'[WARN]':'[ERR]';
+    var cls=f.lvl==='OK'?'f-ok':f.lvl==='WARN'?'f-w':'f-e';
+    return '<li><span class="'+cls+'">'+icon+'</span>'+f.txt+'</li>';
+  }).join('');
+
+  var mt='';
+  mt+='<tr class="gh"><td colspan="2">REACTIVITY — Reaction Time</td></tr>';
+  mt+='<tr><td class="nm">Mean RT (baseline)</td><td class="vl">'+fmt(m.rt.mB,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">RT SD (baseline)</td><td class="vl">'+fmt(m.rt.sB,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">RT CV (baseline)</td><td class="vl">'+fmt(m.rt.cB,3)+'</td></tr>';
+  mt+='<tr><td class="nm">n trials (baseline)</td><td class="vl">'+m.rt.nB+'</td></tr>';
+  if(SESSION.pressure_enabled&&m.rt.nP>0){
+    mt+='<tr><td class="nm">Mean RT (pressure)</td><td class="vl">'+fmt(m.rt.mP,1,' ms')+'</td></tr>';
+    mt+='<tr><td class="nm">RT SD (pressure)</td><td class="vl">'+fmt(m.rt.sP,1,' ms')+'</td></tr>';
+    mt+='<tr><td class="nm">RT CV (pressure)</td><td class="vl">'+fmt(m.rt.cP,3)+'</td></tr>';
+    var r=fmtD(m.rt.dM,' ms');
+    mt+='<tr><td class="nm">Δ Mean RT</td><td class="vl '+r[1]+'" style="font-weight:600">'+r[0]+'</td></tr>';
+    r=fmtD(m.rt.dS,' ms');
+    mt+='<tr><td class="nm">Δ RT SD</td><td class="vl '+r[1]+'">'+r[0]+'</td></tr>';
+    r=fmtD(m.rt.dC,'',3);
+    mt+='<tr><td class="nm">Δ RT CV</td><td class="vl '+r[1]+'">'+r[0]+'</td></tr>';
+  }
+  mt+='<tr class="gh"><td colspan="2">STABILITY — Sustained Attention (CPT)</td></tr>';
+  mt+='<tr><td class="nm">Target trials</td><td class="vl">'+m.cpt.nT+'</td></tr>';
+  mt+='<tr><td class="nm">Omissions</td><td class="vl">'+m.cpt.om+'</td></tr>';
+  mt+='<tr><td class="nm">Omission rate</td><td class="vl">'+fmt(m.cpt.omR!==null?m.cpt.omR*100:null,1,' %')+'</td></tr>';
+  mt+='<tr><td class="nm">False alarms</td><td class="vl">'+m.cpt.fa+'</td></tr>';
+  mt+='<tr><td class="nm">FA rate</td><td class="vl">'+fmt(m.cpt.faR!==null?m.cpt.faR*100:null,1,' %')+'</td></tr>';
+  mt+='<tr class="gh"><td colspan="2">COGNITIVE CONTROL — Flanker</td></tr>';
+  mt+='<tr><td class="nm">FIC (inc − con RT)</td><td class="vl" style="font-weight:600">'+fmt(m.flk.fic,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Con mean RT</td><td class="vl">'+fmt(m.flk.mC,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Inc mean RT</td><td class="vl">'+fmt(m.flk.mI,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Con accuracy</td><td class="vl">'+fmt(m.flk.aC!==null?m.flk.aC*100:null,1,' %')+'</td></tr>';
+  mt+='<tr><td class="nm">Inc accuracy</td><td class="vl">'+fmt(m.flk.aI!==null?m.flk.aI*100:null,1,' %')+'</td></tr>';
+  g('r-metrics').innerHTML=mt;
+
+  g('r-deltas').textContent = SESSION.pressure_enabled&&m.rt.nP>0
+    ? 'RT Δ Mean: '+fmt(m.rt.dM,1,' ms')
+      +' · RT Δ SD: '+fmt(m.rt.dS,1,' ms')
+      +' · RT Δ CV: '+fmt(m.rt.dC,3)
+    : 'Pressure condition not administered — RT delta not available.\n'
+      +'CPT drift (first-half vs second-half omission rate) computable from raw JSON using trial_number.';
+
+  showScreen('scr-results');
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function doExportJSON(){
+  var p={session:SESSION,metrics:SESSION._m,quality:SESSION._q,trials:TRIALS};
+  var b=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
+  var u=URL.createObjectURL(b), a=document.createElement('a');
+  a.href=u; a.download=SESSION.participant_id+'_'+SESSION.session_id+'_raw.json';
+  a.click(); URL.revokeObjectURL(u);
+}
+
+function doExportCSV(){
+  var m=SESSION._m, q=SESSION._q;
+  var rows=[
+    ['field','value'],
+    ['participant_id',SESSION.participant_id],['session_id',SESSION.session_id],
+    ['session_timestamp',SESSION.session_timestamp],['tmb_group',SESSION.tmb_group],
+    ['pressure_enabled',SESSION.pressure_enabled],['admin_notes',SESSION.admin_notes||''],
+    ['session_quality',q.q],['total_trials_logged',TRIALS.length],
+    ['rt_baseline_mean_ms',m.rt.mB!==null?m.rt.mB.toFixed(2):''],
+    ['rt_baseline_sd_ms',  m.rt.sB!==null?m.rt.sB.toFixed(2):''],
+    ['rt_baseline_cv',     m.rt.cB!==null?m.rt.cB.toFixed(4):''],
+    ['rt_baseline_n',      m.rt.nB],
+    ['rt_pressure_mean_ms',m.rt.mP!==null?m.rt.mP.toFixed(2):''],
+    ['rt_pressure_sd_ms',  m.rt.sP!==null?m.rt.sP.toFixed(2):''],
+    ['rt_pressure_cv',     m.rt.cP!==null?m.rt.cP.toFixed(4):''],
+    ['rt_pressure_n',      m.rt.nP],
+    ['rt_delta_mean_ms',   m.rt.dM!==null?m.rt.dM.toFixed(2):''],
+    ['rt_delta_sd_ms',     m.rt.dS!==null?m.rt.dS.toFixed(2):''],
+    ['rt_delta_cv',        m.rt.dC!==null?m.rt.dC.toFixed(4):''],
+    ['cpt_n_targets',      m.cpt.nT],['cpt_n_nontargets',m.cpt.nN],
+    ['cpt_omissions',      m.cpt.om],
+    ['cpt_omission_rate',  m.cpt.omR!==null?m.cpt.omR.toFixed(4):''],
+    ['cpt_false_alarms',   m.cpt.fa],
+    ['cpt_fa_rate',        m.cpt.faR!==null?m.cpt.faR.toFixed(4):''],
+    ['flanker_fic_ms',     m.flk.fic!==null?m.flk.fic.toFixed(2):''],
+    ['flanker_con_rt_ms',  m.flk.mC!==null?m.flk.mC.toFixed(2):''],
+    ['flanker_inc_rt_ms',  m.flk.mI!==null?m.flk.mI.toFixed(2):''],
+    ['flanker_n_con',      m.flk.nC],['flanker_n_inc',m.flk.nI],
+    ['flanker_acc_con',    m.flk.aC!==null?m.flk.aC.toFixed(4):''],
+    ['flanker_acc_inc',    m.flk.aI!==null?m.flk.aI.toFixed(4):'']
+  ];
+  q.flags.forEach(function(f,i){ rows.push(['flag_'+(i+1)+'_'+f.lvl.toLowerCase(),f.txt]); });
+  var csv=rows.map(function(r){
+    return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+  }).join('\n');
+  var b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), a=document.createElement('a');
+  a.href=u; a.download=SESSION.participant_id+'_'+SESSION.session_id+'_summary.csv';
+  a.click(); URL.revokeObjectURL(u);
+}
+
+// ─── App methods (attached before event listeners are bound) ──────────────────
+App.showScreen = showScreen;
+App.advance    = advance;
+
+App.consentContinue = function(){
+  if(!g('chk-consent').checked){ alert('Please confirm consent to continue.'); return; }
+  g('pid-input').value  = makeUID();
+  g('date-input').value = new Date().toLocaleDateString('en-CA');
+  showScreen('scr-setup');
+};
+
+App.setupContinue = function(){
+  var pid=g('pid-input').value.trim();
+  if(!pid){ alert('Participant ID is required.'); return; }
+  SESSION={
+    participant_id:    pid,
+    session_id:        'S-'+Math.random().toString(36).slice(2,8).toUpperCase(),
+    session_timestamp: isoNow(),
+    tmb_group:         g('tmb-group').value,
+    pressure_enabled:  g('chk-pressure').checked,
+    admin_notes:       g('admin-notes').value.trim()
+  };
+  TRIALS=[]; FLOW_IDX=0;
+  FLOW=buildFlow(SESSION.tmb_group, SESSION.pressure_enabled);
+  advance();
+};
+
+App.exportJSON = doExportJSON;
+App.exportCSV  = doExportCSV;
+
+// ─── Bind all event listeners after App is fully populated ────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  g('btn-welcome-continue').addEventListener('click', function(){ showScreen('scr-consent'); });
+  g('btn-consent-continue').addEventListener('click', function(){ App.consentContinue(); });
+  g('btn-setup-start').addEventListener('click',      function(){ App.setupContinue(); });
+  g('btn-instr-start').addEventListener('click',      function(){ advance(); });
+  g('btn-inter-continue').addEventListener('click',   function(){ advance(); });
+  g('btn-tmb-continue').addEventListener('click',     function(){ advance(); });
+  g('btn-export-json').addEventListener('click',      function(){ doExportJSON(); });
+  g('btn-export-csv').addEventListener('click',       function(){ doExportCSV(); });
+});
+</script>
+</body>
+</html>
