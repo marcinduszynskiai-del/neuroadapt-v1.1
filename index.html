@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>NeuroAdapt Research Build v1.1</title>
+<title>NeuroAdapt Research Build v1.2</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -128,7 +128,7 @@ p{font-size:14px;color:var(--ink2);line-height:1.7;margin-bottom:8px}
 
 <!-- WELCOME -->
 <div id="scr-welcome" class="scr on">
-  <span class="lbl">NeuroAdapt Research Build v1.1</span>
+  <span class="lbl">NeuroAdapt Research Build v1.2</span>
   <h1>Performance Drift<br>Assessment System</h1>
   <p>This system measures <strong>how performance changes</strong> across three standardised cognitive task conditions. All outputs are expressed as metric deltas relative to an individual baseline.</p>
   <ul class="ls">
@@ -344,7 +344,8 @@ Group B: this screen appears AFTER NeuroAdapt tasks.
 · No test-retest reliability data exists for this implementation.<br>
 · No normative comparison is computed or implied.<br>
 · Single-session data does not support temporal consistency conclusions.<br>
-· CPT RT not logged (detection rate task — intentional). Drift computable from trial_number in raw JSON.<br>
+· CPT RT logged for correct target hits only (v1.2). False alarm RT not recorded. RT variability reflects hit responses ≥150ms. Drift computable from trial_number in raw JSON.<br>
+· RT baseline/pressure metrics exclude responses &lt;150ms (anticipatory) and &gt;1500ms (lapse). Excluded trials retained in raw JSON.<br>
 · Sound cue depends on device/browser — AudioContext may be silently blocked.
     </div>
   </div>
@@ -394,6 +395,13 @@ function sdev(arr){
 function cvar(arr){
   var m=mean(arr), s=sdev(arr);
   return (m&&s) ? s/m : null;
+}
+
+function median(arr){
+  if(!arr||!arr.length) return null;
+  var s=arr.slice().sort(function(a,b){return a-b;});
+  var mid=Math.floor(s.length/2);
+  return s.length%2 ? s[mid] : (s[mid-1]+s[mid])/2;
 }
 
 function fmt(v,dec,unit){
@@ -669,6 +677,7 @@ function runCPT(phase, cfg){
   }
 
   var trialN=0, stimActive=false, responded=false, finished=false;
+  var t0=0;
   var bOrder=phase==='PRACTICE'?0:2;
 
   function done(){ if(finished)return; finished=true; document.removeEventListener('keydown',onKey); advance(); }
@@ -680,6 +689,7 @@ function runCPT(phase, cfg){
     stimActive=true; responded=false;
     g('el-letter').textContent=ltr;
     g('el-letter').style.display='block';
+    t0=performance.now();
     g('task-fdbk').textContent='';
     setTimeout(function(){ g('el-letter').style.display='none'; }, cfg.stm);
     setTimeout(function(){
@@ -703,11 +713,12 @@ function runCPT(phase, cfg){
     if(e.code!=='Space'||!stimActive) return;
     e.preventDefault();
     var ltr=seq[trialN], isTgt=(ltr===CPT_TARGET), tn=trialN;
+    var rt=Math.round(performance.now()-t0);
     responded=true; stimActive=false;
     logTrial({task:'CPT',phase:phase,trial_number:tn+1,stimulus:ltr,
       condition:isTgt?'target':'nontarget',
       correct_response:isTgt?'SPACE':'NONE',participant_response:'SPACE',
-      rt_ms:null,correct:isTgt,timeout:false,omitted:false,
+      rt_ms:isTgt?rt:null,correct:isTgt,timeout:false,omitted:false,
       commission_error:!isTgt,block_order:bOrder});
   }
   document.addEventListener('keydown',onKey);
@@ -765,7 +776,7 @@ function runFlanker(phase, cfg){
             condition:stim.cong,correct_response:stim.cDir==='L'?'LEFT':'RIGHT',
             participant_response:'TIMEOUT',rt_ms:null,correct:false,
             timeout:true,omitted:false,commission_error:false,block_order:bOrder});
-          trialN++; setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
+          setTimeout(nextTrial,rnd(cfg.itiLo,cfg.itiHi));
         }
       }, cfg.win);
     }, rnd(400,700));
@@ -793,19 +804,40 @@ function runFlanker(phase, cfg){
 // ─── Metrics ──────────────────────────────────────────────────────────────────
 function computeMetrics(){
   function byTP(task,ph){ return TRIALS.filter(function(r){return r.task===task&&r.phase===ph;}); }
-  function rtV(ph){ return byTP('RT',ph).filter(function(r){return r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;}); }
+
+  // RT vectors: valid window 150–1500ms only; excludes anticipatory and lapse trials from metrics
+  // Excluded trials are retained in raw TRIALS array for export
+  function rtV(ph){
+    return byTP('RT',ph)
+      .filter(function(r){ return r.correct&&r.rt_ms&&r.rt_ms>=150&&r.rt_ms<=1500; })
+      .map(function(r){ return r.rt_ms; });
+  }
+  // Count trials excluded from RT metrics (outside 150–1500ms window)
+  function rtExcl(ph){
+    return byTP('RT',ph).filter(function(r){
+      return r.correct&&r.rt_ms&&(r.rt_ms<150||r.rt_ms>1500);
+    }).length;
+  }
 
   var rb=rtV('BASELINE'), rp=rtV('PRESSURE');
+  var exclB=rtExcl('BASELINE'), exclP=rtExcl('PRESSURE');
+  var mB=mean(rb),mP=mean(rp),sB=sdev(rb),sP=sdev(rp),cB=cvar(rb),cP=cvar(rp);
+  var medB=median(rb),medP=median(rp);
+
   var cb=byTP('CPT','BASELINE');
   var cTgt=cb.filter(function(r){return r.condition==='target';});
   var cNon=cb.filter(function(r){return r.condition==='nontarget';});
+  // CPT hit RT: correct target responses with rt_ms >= 150ms (anticipatory floor applied)
+  var cHitRT=cb.filter(function(r){
+    return r.condition==='target'&&r.correct&&r.rt_ms&&r.rt_ms>=150;
+  }).map(function(r){return r.rt_ms;});
+
   var fb=byTP('FLANKER','BASELINE');
   var fCon=fb.filter(function(r){return r.condition==='congruent'&&r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;});
   var fInc=fb.filter(function(r){return r.condition==='incongruent'&&r.correct&&r.rt_ms;}).map(function(r){return r.rt_ms;});
   var fcA=fb.filter(function(r){return r.condition==='congruent';});
   var fiA=fb.filter(function(r){return r.condition==='incongruent';});
 
-  var mB=mean(rb),mP=mean(rp),sB=sdev(rb),sP=sdev(rp),cB=cvar(rb),cP=cvar(rp);
   var omR=cTgt.length?cTgt.filter(function(r){return r.omitted;}).length/cTgt.length:null;
   var faR=cNon.length?cNon.filter(function(r){return r.commission_error;}).length/cNon.length:null;
   var fic=(fCon.length&&fInc.length)?mean(fInc)-mean(fCon):null;
@@ -813,12 +845,19 @@ function computeMetrics(){
   var aI=fiA.length?fiA.filter(function(r){return r.correct;}).length/fiA.length:null;
 
   return {
-    rt:{mB:mB,mP:mP,sB:sB,sP:sP,cB:cB,cP:cP,nB:rb.length,nP:rp.length,
-        dM:(mB&&mP)?mP-mB:null, dS:(sB&&sP)?sP-sB:null, dC:(cB&&cP)?cP-cB:null},
+    rt:{mB:mB,mP:mP,sB:sB,sP:sP,cB:cB,cP:cP,
+        medB:medB,medP:medP,
+        nB:rb.length,nP:rp.length,
+        exclB:exclB,exclP:exclP,
+        dM:(mB&&mP)?mP-mB:null,
+        dS:(sB&&sP)?sP-sB:null,
+        dC:(cB&&cP)?cP-cB:null,
+        dMed:(medB!==null&&medP!==null)?medP-medB:null},
     cpt:{nT:cTgt.length,nN:cNon.length,
          om:cTgt.filter(function(r){return r.omitted;}).length,
          fa:cNon.filter(function(r){return r.commission_error;}).length,
-         omR:omR,faR:faR},
+         omR:omR,faR:faR,
+         rtMean:mean(cHitRT),rtSD:sdev(cHitRT),rtCV:cvar(cHitRT),nHit:cHitRT.length},
     flk:{fic:fic,mC:mean(fCon),mI:mean(fInc),aC:aC,aI:aI,
          nC:fcA.length,nI:fiA.length}
   };
@@ -829,9 +868,11 @@ function computeQuality(m){
   var flags=[],errs=0,warns=0;
   function flag(lvl,txt){ flags.push({lvl:lvl,txt:txt}); if(lvl==='ERR')errs++; if(lvl==='WARN')warns++; }
 
-  if(m.rt.nB<20)       flag('ERR', 'RT baseline: only '+m.rt.nB+' usable trials (minimum 20)');
-  else if(m.rt.nB<30)  flag('WARN','RT baseline: '+m.rt.nB+' trials — below pre-pilot minimum of 30');
-  else                 flag('OK',  'RT baseline: '+m.rt.nB+' usable trials');
+  if(m.rt.nB<20)       flag('ERR', 'RT baseline: only '+m.rt.nB+' usable trials in 150–1500ms window (minimum 20)');
+  else if(m.rt.nB<30)  flag('WARN','RT baseline: '+m.rt.nB+' trials in valid window — below pre-pilot minimum of 30');
+  else                 flag('OK',  'RT baseline: '+m.rt.nB+' usable trials in 150–1500ms window');
+
+  if(m.rt.exclB>0) flag('WARN','RT baseline: '+m.rt.exclB+' trial(s) outside 150–1500ms window excluded from metrics — retained in raw JSON');
 
   var cv=m.rt.cB;
   if(cv===null)               flag('WARN','RT baseline CV not computable — insufficient data');
@@ -846,6 +887,8 @@ function computeQuality(m){
   else             flag('OK',  'CPT: '+cAll+' trials logged');
   if(m.cpt.nT<10)  flag('WARN','CPT: only '+m.cpt.nT+' target trials — omission rate unreliable');
   if(m.cpt.faR!==null&&m.cpt.faR>0.40) flag('WARN','CPT: false alarm rate '+Math.round(m.cpt.faR*100)+'% — verify task rule comprehension');
+  if(m.cpt.nHit<8) flag('WARN','CPT: '+m.cpt.nHit+' hit(s) with valid RT — RT variability metric unreliable (minimum 8)');
+  else             flag('OK',  'CPT: '+m.cpt.nHit+' correct target hits with RT ≥150ms — RT variability computable');
 
   if(m.flk.nC<30||m.flk.nI<30) flag('WARN','Flanker: con='+m.flk.nC+', inc='+m.flk.nI+' — below 40+40 minimum');
   else                           flag('OK',  'Flanker: con='+m.flk.nC+', inc='+m.flk.nI+' trials');
@@ -882,15 +925,19 @@ function doResults(){
   var mt='';
   mt+='<tr class="gh"><td colspan="2">REACTIVITY — Reaction Time</td></tr>';
   mt+='<tr><td class="nm">Mean RT (baseline)</td><td class="vl">'+fmt(m.rt.mB,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Median RT (baseline)</td><td class="vl">'+fmt(m.rt.medB,1,' ms')+'</td></tr>';
   mt+='<tr><td class="nm">RT SD (baseline)</td><td class="vl">'+fmt(m.rt.sB,1,' ms')+'</td></tr>';
   mt+='<tr><td class="nm">RT CV (baseline)</td><td class="vl">'+fmt(m.rt.cB,3)+'</td></tr>';
-  mt+='<tr><td class="nm">n trials (baseline)</td><td class="vl">'+m.rt.nB+'</td></tr>';
+  mt+='<tr><td class="nm">n trials (baseline)</td><td class="vl">'+m.rt.nB+(m.rt.exclB>0?' <span style="color:var(--amber);font-size:10px">(+'+m.rt.exclB+' excl.)</span>':'')+'</td></tr>';
   if(SESSION.pressure_enabled&&m.rt.nP>0){
     mt+='<tr><td class="nm">Mean RT (pressure)</td><td class="vl">'+fmt(m.rt.mP,1,' ms')+'</td></tr>';
+    mt+='<tr><td class="nm">Median RT (pressure)</td><td class="vl">'+fmt(m.rt.medP,1,' ms')+'</td></tr>';
     mt+='<tr><td class="nm">RT SD (pressure)</td><td class="vl">'+fmt(m.rt.sP,1,' ms')+'</td></tr>';
     mt+='<tr><td class="nm">RT CV (pressure)</td><td class="vl">'+fmt(m.rt.cP,3)+'</td></tr>';
     var r=fmtD(m.rt.dM,' ms');
     mt+='<tr><td class="nm">Δ Mean RT</td><td class="vl '+r[1]+'" style="font-weight:600">'+r[0]+'</td></tr>';
+    var rd=fmtD(m.rt.dMed,' ms');
+    mt+='<tr><td class="nm">Δ Median RT</td><td class="vl '+rd[1]+'" style="font-weight:600">'+rd[0]+'</td></tr>';
     r=fmtD(m.rt.dS,' ms');
     mt+='<tr><td class="nm">Δ RT SD</td><td class="vl '+r[1]+'">'+r[0]+'</td></tr>';
     r=fmtD(m.rt.dC,'',3);
@@ -902,6 +949,10 @@ function doResults(){
   mt+='<tr><td class="nm">Omission rate</td><td class="vl">'+fmt(m.cpt.omR!==null?m.cpt.omR*100:null,1,' %')+'</td></tr>';
   mt+='<tr><td class="nm">False alarms</td><td class="vl">'+m.cpt.fa+'</td></tr>';
   mt+='<tr><td class="nm">FA rate</td><td class="vl">'+fmt(m.cpt.faR!==null?m.cpt.faR*100:null,1,' %')+'</td></tr>';
+  mt+='<tr><td class="nm">Hit RT mean (CPT)</td><td class="vl">'+fmt(m.cpt.rtMean,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Hit RT SD (CPT)</td><td class="vl">'+fmt(m.cpt.rtSD,1,' ms')+'</td></tr>';
+  mt+='<tr><td class="nm">Hit RT CV (CPT)</td><td class="vl" style="font-weight:600">'+fmt(m.cpt.rtCV,3)+'</td></tr>';
+  mt+='<tr><td class="nm">n hits with valid RT</td><td class="vl">'+m.cpt.nHit+'</td></tr>';
   mt+='<tr class="gh"><td colspan="2">COGNITIVE CONTROL — Flanker</td></tr>';
   mt+='<tr><td class="nm">FIC (inc − con RT)</td><td class="vl" style="font-weight:600">'+fmt(m.flk.fic,1,' ms')+'</td></tr>';
   mt+='<tr><td class="nm">Con mean RT</td><td class="vl">'+fmt(m.flk.mC,1,' ms')+'</td></tr>';
@@ -912,6 +963,7 @@ function doResults(){
 
   g('r-deltas').textContent = SESSION.pressure_enabled&&m.rt.nP>0
     ? 'RT Δ Mean: '+fmt(m.rt.dM,1,' ms')
+      +' · RT Δ Median: '+fmt(m.rt.dMed,1,' ms')
       +' · RT Δ SD: '+fmt(m.rt.dS,1,' ms')
       +' · RT Δ CV: '+fmt(m.rt.dC,3)
     : 'Pressure condition not administered — RT delta not available.\n'
@@ -937,22 +989,31 @@ function doExportCSV(){
     ['session_timestamp',SESSION.session_timestamp],['tmb_group',SESSION.tmb_group],
     ['pressure_enabled',SESSION.pressure_enabled],['admin_notes',SESSION.admin_notes||''],
     ['session_quality',q.q],['total_trials_logged',TRIALS.length],
-    ['rt_baseline_mean_ms',m.rt.mB!==null?m.rt.mB.toFixed(2):''],
-    ['rt_baseline_sd_ms',  m.rt.sB!==null?m.rt.sB.toFixed(2):''],
-    ['rt_baseline_cv',     m.rt.cB!==null?m.rt.cB.toFixed(4):''],
-    ['rt_baseline_n',      m.rt.nB],
-    ['rt_pressure_mean_ms',m.rt.mP!==null?m.rt.mP.toFixed(2):''],
-    ['rt_pressure_sd_ms',  m.rt.sP!==null?m.rt.sP.toFixed(2):''],
-    ['rt_pressure_cv',     m.rt.cP!==null?m.rt.cP.toFixed(4):''],
-    ['rt_pressure_n',      m.rt.nP],
-    ['rt_delta_mean_ms',   m.rt.dM!==null?m.rt.dM.toFixed(2):''],
-    ['rt_delta_sd_ms',     m.rt.dS!==null?m.rt.dS.toFixed(2):''],
-    ['rt_delta_cv',        m.rt.dC!==null?m.rt.dC.toFixed(4):''],
-    ['cpt_n_targets',      m.cpt.nT],['cpt_n_nontargets',m.cpt.nN],
-    ['cpt_omissions',      m.cpt.om],
-    ['cpt_omission_rate',  m.cpt.omR!==null?m.cpt.omR.toFixed(4):''],
-    ['cpt_false_alarms',   m.cpt.fa],
-    ['cpt_fa_rate',        m.cpt.faR!==null?m.cpt.faR.toFixed(4):''],
+    ['rt_baseline_mean_ms',   m.rt.mB!==null?m.rt.mB.toFixed(2):''],
+    ['rt_baseline_median_ms', m.rt.medB!==null?m.rt.medB.toFixed(2):''],
+    ['rt_baseline_sd_ms',     m.rt.sB!==null?m.rt.sB.toFixed(2):''],
+    ['rt_baseline_cv',        m.rt.cB!==null?m.rt.cB.toFixed(4):''],
+    ['rt_baseline_n',         m.rt.nB],
+    ['rt_baseline_excl_n',    m.rt.exclB],
+    ['rt_pressure_mean_ms',   m.rt.mP!==null?m.rt.mP.toFixed(2):''],
+    ['rt_pressure_median_ms', m.rt.medP!==null?m.rt.medP.toFixed(2):''],
+    ['rt_pressure_sd_ms',     m.rt.sP!==null?m.rt.sP.toFixed(2):''],
+    ['rt_pressure_cv',        m.rt.cP!==null?m.rt.cP.toFixed(4):''],
+    ['rt_pressure_n',         m.rt.nP],
+    ['rt_pressure_excl_n',    m.rt.exclP],
+    ['rt_delta_mean_ms',      m.rt.dM!==null?m.rt.dM.toFixed(2):''],
+    ['rt_delta_median_ms',    m.rt.dMed!==null?m.rt.dMed.toFixed(2):''],
+    ['rt_delta_sd_ms',        m.rt.dS!==null?m.rt.dS.toFixed(2):''],
+    ['rt_delta_cv',           m.rt.dC!==null?m.rt.dC.toFixed(4):''],
+    ['cpt_n_targets',         m.cpt.nT],['cpt_n_nontargets',m.cpt.nN],
+    ['cpt_omissions',         m.cpt.om],
+    ['cpt_omission_rate',     m.cpt.omR!==null?m.cpt.omR.toFixed(4):''],
+    ['cpt_false_alarms',      m.cpt.fa],
+    ['cpt_fa_rate',           m.cpt.faR!==null?m.cpt.faR.toFixed(4):''],
+    ['cpt_hit_rt_mean_ms',    m.cpt.rtMean!==null?m.cpt.rtMean.toFixed(2):''],
+    ['cpt_hit_rt_sd_ms',      m.cpt.rtSD!==null?m.cpt.rtSD.toFixed(2):''],
+    ['cpt_hit_rt_cv',         m.cpt.rtCV!==null?m.cpt.rtCV.toFixed(4):''],
+    ['cpt_n_hit_rt_valid',    m.cpt.nHit],
     ['flanker_fic_ms',     m.flk.fic!==null?m.flk.fic.toFixed(2):''],
     ['flanker_con_rt_ms',  m.flk.mC!==null?m.flk.mC.toFixed(2):''],
     ['flanker_inc_rt_ms',  m.flk.mI!==null?m.flk.mI.toFixed(2):''],
@@ -997,6 +1058,22 @@ App.setupContinue = function(){
 };
 
 App.exportJSON = doExportJSON;
+App.exportCSV  = doExportCSV;
+
+// ─── Bind all event listeners after App is fully populated ────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  g('btn-welcome-continue').addEventListener('click', function(){ showScreen('scr-consent'); });
+  g('btn-consent-continue').addEventListener('click', function(){ App.consentContinue(); });
+  g('btn-setup-start').addEventListener('click',      function(){ App.setupContinue(); });
+  g('btn-instr-start').addEventListener('click',      function(){ advance(); });
+  g('btn-inter-continue').addEventListener('click',   function(){ advance(); });
+  g('btn-tmb-continue').addEventListener('click',     function(){ advance(); });
+  g('btn-export-json').addEventListener('click',      function(){ doExportJSON(); });
+  g('btn-export-csv').addEventListener('click',       function(){ doExportCSV(); });
+});
+</script>
+</body>
+</html>N;
 App.exportCSV  = doExportCSV;
 
 // ─── Bind all event listeners after App is fully populated ────────────────────
